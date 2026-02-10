@@ -34,7 +34,6 @@ jobs:
           - x86
           - aarch64
         exclude:
-            
           - version: '1.6'
             os: macos-latest
             arch: aarch64
