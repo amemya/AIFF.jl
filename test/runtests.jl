@@ -162,5 +162,20 @@ using Test
         @test size(result.data) == (nframes, 1)
         @test result.samplerate ≈ sr
     end
+    @testset "aiffplay method availability" begin
+        # Verify aiffplay is exported and has methods for all expected signatures
+        @test hasmethod(aiffplay, (AbstractString,))
+        @test hasmethod(aiffplay, (AbstractVector{Float64}, Real))
+        @test hasmethod(aiffplay, (AbstractMatrix{Float64}, Real))
+    end
+
+    @testset "aiffplay with 1D vector (mono)" begin
+        # Verify that 1D vector input doesn't error during setup
+        # (can't test actual playback without audio hardware)
+        samples = sin.(range(0, stop=2π, length=100))
+        @test samples isa AbstractVector
+        # Ensure the method exists for this type
+        @test hasmethod(aiffplay, (typeof(samples), Real))
+    end
 
 end

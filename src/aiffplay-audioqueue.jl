@@ -101,15 +101,15 @@ struct AudioStreamBasicDescription
 end
 
 mutable struct AudioQueueData{T,N}
-    samples::Array{T,N}
+    samples::AbstractArray{T,N}
     aq::AudioQueueRef
     offset::Int
     nSamples::Int
     nBuffersEnqueued::UInt
     runLoop::CFRunLoopRef
 
-    function AudioQueueData(samples)
-        new{eltype(samples),ndims(samples)}(
+    function AudioQueueData(samples::AbstractArray{T,N}) where {T,N}
+        new{T,N}(
             samples, convert(AudioQueueRef, 0), 0,
             size(samples, 1), 0, convert(CFRunLoopRef, 0))
     end
@@ -288,8 +288,8 @@ function getFormatForData(data, fs)
 end
 
 function aiffplay(data::AbstractVecOrMat{<:Real}, fs::Real)
-    # Ensure 2D
-    samples = ndims(data) == 1 ? reshape(data, :, 1) : data
+    # Ensure 2D and materialize to Array (needed for unsafe_store! pointer access)
+    samples = ndims(data) == 1 ? reshape(collect(data), :, 1) : collect(data)
 
     userData = AudioQueueData(samples)
     userData.aq = AudioQueueNewOutput(getFormatForData(samples, fs), userData)

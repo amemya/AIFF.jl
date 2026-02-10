@@ -57,7 +57,10 @@ function build_wav_memory(data::AbstractMatrix{<:Real}, fs::Real)
     maxval = Float64(typemax(Int16))
     for i in 1:nframes
         for ch in 1:nchannels
-            sample = clamp(round(Int16, data[i, ch] * maxval), typemin(Int16), typemax(Int16))
+            s = Float64(data[i, ch])
+            s = isfinite(s) ? s : 0.0
+            s = clamp(s, -1.0, 1.0)
+            sample = round(Int16, s * maxval)
             write(buf, htol(sample))
         end
     end
@@ -76,7 +79,7 @@ function aiffplay(data::AbstractVecOrMat{<:Real}, fs::Real)
     success = ccall((:PlaySoundA, "Winmm.dll"), stdcall, BOOL,
                     (Ptr{Cvoid}, Ptr{Cvoid}, DWORD),
                     wav, C_NULL, SND_MEMORY | SND_SYNC | SND_NODEFAULT)
-    Base.windowserror("PlaySound", success != TRUE)
+    Base.windowserror("PlaySound", success == 0)
 end
 
 end # module AIFFPlay
