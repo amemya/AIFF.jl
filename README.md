@@ -9,6 +9,7 @@ A pure Julia package for reading and writing [AIFF (Audio Interchange File Forma
 - **Bit depths**: 8, 16, 24, 32-bit integer PCM
 - **Channels**: mono, stereo, and arbitrary multi-channel
 - **Metadata**: reads Marker, Instrument, Name, Author, Copyright, and Annotation chunks
+- **Playback**: native audio playback on macOS, Linux, and Windows
 - **Round-trip safe**: unknown chunks are preserved as raw bytes
 
 ## Installation
@@ -69,6 +70,22 @@ stereo = hcat(left, right)
 aiffwrite("stereo.aiff", stereo, 44100; nbits=24)
 ```
 
+### Playing audio
+
+```julia
+# Play an AIFF file
+aiffplay("tone.aiff")
+
+# Play data directly (matrix + sample rate)
+aiffplay(samples, 44100)
+```
+
+| OS | Backend |
+|---------|------------------------------|
+| macOS | Core Audio (AudioQueue) |
+| Linux | PulseAudio (libpulse-simple) |
+| Windows | Win32 PlaySound (Winmm.dll) |
+
 ### Accessing metadata
 
 ```julia
@@ -105,6 +122,7 @@ Unknown chunks are preserved as `AIFFChunk` objects for round-trip fidelity.
 - **AIFF only** — AIFF-C (compressed) is not yet supported
 - **PCM only** — no floating-point or compressed audio encoding
 - **Write** currently outputs only COMM + SSND chunks (no metadata writing yet)
+- **Playback** requires platform audio libraries (pre-installed on most systems)
 
 ## License
 
