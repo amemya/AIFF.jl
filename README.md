@@ -1,3 +1,5 @@
+[![CI](https://github.com/amemya/AIFF.jl/actions/workflows/CI.yml/badge.svg)](https://github.com/amemya/AIFF.jl/actions/workflows/CI.yml)
+
 # AIFF.jl
 
 A pure Julia package for reading and writing [AIFF (Audio Interchange File Format)](https://en.wikipedia.org/wiki/Audio_Interchange_File_Format) files — no external C libraries required.
