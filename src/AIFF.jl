@@ -1,6 +1,6 @@
 module AIFF
 
-export aiffread, aiffwrite
+export aiffread, aiffwrite, aiffplay
 
 # ============================================================================
 # Data Types
@@ -652,6 +652,43 @@ end
 
 function aiffwrite(io::IO, samples::AbstractVector, samplerate::Real; nbits::Integer=16)
     aiffwrite(io, reshape(samples, :, 1), samplerate; nbits=nbits)
+end
+
+# ============================================================================
+# Playback
+# ============================================================================
+
+"""
+    aiffplay(data, samplerate)
+    aiffplay(filename)
+
+Play audio data or an AIFF file.
+
+When called with a matrix (rows=frames, cols=channels) and sample rate,
+plays the audio directly. When called with a filename, reads the AIFF file
+first.
+
+Supported backends:
+- **macOS**: AudioQueue (Core Audio)
+- **Linux**: PulseAudio (libpulse-simple)
+- **Windows**: PlaySound (Winmm.dll)
+"""
+function aiffplay end
+
+function aiffplay(filename::AbstractString)
+    result = aiffread(filename; format="double")
+    aiffplay(result.data, result.samplerate)
+end
+
+@static if Sys.isapple()
+    include("aiffplay-audioqueue.jl")
+elseif Sys.islinux()
+    include("aiffplay-pulse.jl")
+elseif Sys.iswindows()
+    include("aiffplay-win32.jl")
+else
+    aiffplay(data::AbstractVecOrMat{<:Real}, fs::Real) =
+        @warn "aiffplay is not currently supported on $(Sys.KERNEL)"
 end
 
 end # module AIFF
