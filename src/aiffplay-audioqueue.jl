@@ -24,7 +24,7 @@ const kAudioFormatFlagIsPacked              = (1 << 3)
 const kAudioFormatFlagIsAlignedHigh         = (1 << 4)
 const kAudioFormatFlagIsNonInterleaved      = (1 << 5)
 const kAudioFormatFlagIsNonMixable          = (1 << 6)
-const kAudioFormatFlagsAreAllClear          = (1 << 31)
+const kAudioFormatFlagsAreAllClear          = 0
 
 const kNumberBuffers = 3
 
@@ -107,11 +107,13 @@ mutable struct AudioQueueData{T,N}
     nSamples::Int
     nBuffersEnqueued::UInt
     runLoop::CFRunLoopRef
+    callbackPtr::Ptr{Cvoid}  # prevent GC of @cfunction
 
     function AudioQueueData(samples::AbstractArray{T,N}) where {T,N}
         new{T,N}(
             samples, convert(AudioQueueRef, 0), 0,
-            size(samples, 1), 0, convert(CFRunLoopRef, 0))
+            size(samples, 1), 0, convert(CFRunLoopRef, 0),
+            C_NULL)
     end
 end
 
@@ -248,6 +250,8 @@ function AudioQueueNewOutput(format::AudioStreamBasicDescription,
     newAudioQueue = Ref{AudioQueueRef}(0)
     cCallbackProc = @cfunction(playCallback, Cvoid,
                                (Ref{AudioQueueData{T,N}}, AudioQueueRef, AudioQueueBufferRef))
+    # Store callback pointer to prevent GC during playback
+    userData.callbackPtr = Base.unsafe_convert(Ptr{Cvoid}, cCallbackProc)
     result = ccall((:AudioQueueNewOutput, AudioToolbox), OSStatus,
                    (Ptr{AudioStreamBasicDescription}, Ptr{Cvoid}, Ref{AudioQueueData{T,N}},
                     CFRunLoopRef, CFStringRef, UInt32, Ref{AudioQueueRef}),

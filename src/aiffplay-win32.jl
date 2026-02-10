@@ -79,7 +79,9 @@ function aiffplay(data::AbstractVecOrMat{<:Real}, fs::Real)
     success = ccall((:PlaySoundA, "Winmm.dll"), stdcall, BOOL,
                     (Ptr{Cvoid}, Ptr{Cvoid}, DWORD),
                     wav, C_NULL, SND_MEMORY | SND_SYNC | SND_NODEFAULT)
-    Base.windowserror("PlaySound", success == 0)
+    if success == 0
+        Base.windowserror("PlaySound")
+    end
 end
 
 end # module AIFFPlay
