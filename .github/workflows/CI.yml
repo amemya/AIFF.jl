@@ -32,11 +32,22 @@ jobs:
         arch:
           - x64
           - x86
+          - aarch64
         exclude:
+            
           - version: '1.6'
             os: macos-latest
+            arch: aarch64
+
           - os: macos-latest
             arch: x86
+
+          - os: windows-latest
+            arch: aarch64
+
+          - os: ubuntu-latest
+            arch: aarch64
+
     steps:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v2
