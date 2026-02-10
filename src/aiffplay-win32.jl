@@ -75,9 +75,11 @@ end
 function aiffplay(data::AbstractVecOrMat{<:Real}, fs::Real)
     samples = ndims(data) == 1 ? reshape(data, :, 1) : data
     # Normalize integers to Float64 [-1.0, 1.0] for consistent handling
-    if eltype(samples) <: Integer
-        maxval = Float64(typemax(eltype(samples)))
-        samples = Float64.(samples) ./ maxval
+    if eltype(samples) <: Signed
+        maxabs = max(-float(typemin(eltype(samples))), float(typemax(eltype(samples))))
+        samples = clamp.(Float64.(samples) ./ maxabs, -1.0, 1.0)
+    elseif eltype(samples) <: Unsigned
+        samples = Float64.(samples) ./ Float64(typemax(eltype(samples)))
     else
         samples = Float64.(samples)
     end

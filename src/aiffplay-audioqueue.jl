@@ -296,11 +296,18 @@ function aiffplay(data::AbstractVecOrMat{<:Real}, fs::Real)
     samples = ndims(data) == 1 ? reshape(collect(data), :, 1) : collect(data)
 
     # Normalize integers to Float32 [-1.0, 1.0]; convert Float64 to Float32
-    if eltype(samples) <: Integer
-        maxval = Float32(typemax(eltype(samples)))
-        samples = Float32.(samples) ./ maxval
+    if eltype(samples) <: Signed
+        maxabs = max(-float(typemin(eltype(samples))), float(typemax(eltype(samples))))
+        samples = clamp.(Float32.(samples) ./ Float32(maxabs), -1f0, 1f0)
+    elseif eltype(samples) <: Unsigned
+        samples = Float32.(samples) ./ Float32(typemax(eltype(samples)))
     elseif eltype(samples) != Float32
         samples = Float32.(samples)
+    end
+
+    # Early return for empty audio (0 frames would hang CFRunLoop)
+    if size(samples, 1) == 0
+        return
     end
 
     userData = AudioQueueData(samples)

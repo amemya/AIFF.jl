@@ -71,14 +71,22 @@ function aiffplay(data::AbstractVecOrMat{<:Real}, fs::Real)
     ss = pa_sample_spec(PA_SAMPLE_FLOAT32LE, round(UInt32, fs), UInt8(nChannels))
 
     # Interleave samples as Float32 (PulseAudio expects interleaved)
-    # Normalize integers to [-1.0, 1.0] range
+    # Normalize integers to [-1.0, 1.0] range, clamp to avoid overflow
     buf = Vector{Float32}(undef, size(samples, 1) * nChannels)
     idx = 1
-    if eltype(samples) <: Integer
-        maxval = Float32(typemax(eltype(samples)))
+    if eltype(samples) <: Signed
+        maxabs = Float32(max(-float(typemin(eltype(samples))), float(typemax(eltype(samples)))))
         for i in 1:size(samples, 1)
             for j in 1:nChannels
-                buf[idx] = Float32(samples[i, j]) / maxval
+                buf[idx] = clamp(Float32(samples[i, j]) / maxabs, -1f0, 1f0)
+                idx += 1
+            end
+        end
+    elseif eltype(samples) <: Unsigned
+        scale = Float32(typemax(eltype(samples)))
+        for i in 1:size(samples, 1)
+            for j in 1:nChannels
+                buf[idx] = Float32(samples[i, j]) / scale
                 idx += 1
             end
         end
