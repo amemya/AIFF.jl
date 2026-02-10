@@ -57,7 +57,10 @@ function build_wav_memory(data::AbstractMatrix{<:Real}, fs::Real)
     maxval = Float64(typemax(Int16))
     for i in 1:nframes
         for ch in 1:nchannels
-            sample = clamp(round(Int16, data[i, ch] * maxval), typemin(Int16), typemax(Int16))
+            s = Float64(data[i, ch])
+            s = isfinite(s) ? s : 0.0
+            s = clamp(s, -1.0, 1.0)
+            sample = round(Int16, s * maxval)
             write(buf, htol(sample))
         end
     end
@@ -71,12 +74,23 @@ end
 
 function aiffplay(data::AbstractVecOrMat{<:Real}, fs::Real)
     samples = ndims(data) == 1 ? reshape(data, :, 1) : data
-    wav = build_wav_memory(Float64.(samples), fs)
+    # Normalize integers to Float64 [-1.0, 1.0] for consistent handling
+    if eltype(samples) <: Signed
+        maxabs = max(-float(typemin(eltype(samples))), float(typemax(eltype(samples))))
+        samples = clamp.(Float64.(samples) ./ maxabs, -1.0, 1.0)
+    elseif eltype(samples) <: Unsigned
+        samples = Float64.(samples) ./ Float64(typemax(eltype(samples)))
+    else
+        samples = Float64.(samples)
+    end
+    wav = build_wav_memory(samples, fs)
 
     success = ccall((:PlaySoundA, "Winmm.dll"), stdcall, BOOL,
                     (Ptr{Cvoid}, Ptr{Cvoid}, DWORD),
                     wav, C_NULL, SND_MEMORY | SND_SYNC | SND_NODEFAULT)
-    Base.windowserror("PlaySound", success != TRUE)
+    if success == 0
+        Base.windowserror("PlaySound")
+    end
 end
 
 end # module AIFFPlay

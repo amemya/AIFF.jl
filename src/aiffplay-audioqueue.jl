@@ -24,7 +24,7 @@ const kAudioFormatFlagIsPacked              = (1 << 3)
 const kAudioFormatFlagIsAlignedHigh         = (1 << 4)
 const kAudioFormatFlagIsNonInterleaved      = (1 << 5)
 const kAudioFormatFlagIsNonMixable          = (1 << 6)
-const kAudioFormatFlagsAreAllClear          = (1 << 31)
+const kAudioFormatFlagsAreAllClear          = 0
 
 const kNumberBuffers = 3
 
@@ -101,17 +101,19 @@ struct AudioStreamBasicDescription
 end
 
 mutable struct AudioQueueData{T,N}
-    samples::Array{T,N}
+    samples::AbstractArray{T,N}
     aq::AudioQueueRef
     offset::Int
     nSamples::Int
     nBuffersEnqueued::UInt
     runLoop::CFRunLoopRef
+    callbackPtr::Ptr{Cvoid}  # prevent GC of @cfunction
 
-    function AudioQueueData(samples)
-        new{eltype(samples),ndims(samples)}(
+    function AudioQueueData(samples::AbstractArray{T,N}) where {T,N}
+        new{T,N}(
             samples, convert(AudioQueueRef, 0), 0,
-            size(samples, 1), 0, convert(CFRunLoopRef, 0))
+            size(samples, 1), 0, convert(CFRunLoopRef, 0),
+            C_NULL)
     end
 end
 
@@ -248,6 +250,8 @@ function AudioQueueNewOutput(format::AudioStreamBasicDescription,
     newAudioQueue = Ref{AudioQueueRef}(0)
     cCallbackProc = @cfunction(playCallback, Cvoid,
                                (Ref{AudioQueueData{T,N}}, AudioQueueRef, AudioQueueBufferRef))
+    # Store callback pointer to prevent GC during playback
+    userData.callbackPtr = Base.unsafe_convert(Ptr{Cvoid}, cCallbackProc)
     result = ccall((:AudioQueueNewOutput, AudioToolbox), OSStatus,
                    (Ptr{AudioStreamBasicDescription}, Ptr{Cvoid}, Ref{AudioQueueData{T,N}},
                     CFRunLoopRef, CFStringRef, UInt32, Ref{AudioQueueRef}),
@@ -262,7 +266,7 @@ end
 # ============================================================================
 
 function getFormatFlags(el)
-    flags = kAudioFormatFlagsAreAllClear
+    flags = kAudioFormatFlagsAreAllClear | kAudioFormatFlagIsPacked
     if el <: AbstractFloat
         flags |= kAudioFormatFlagIsFloat
     elseif el <: Integer
@@ -288,8 +292,23 @@ function getFormatForData(data, fs)
 end
 
 function aiffplay(data::AbstractVecOrMat{<:Real}, fs::Real)
-    # Ensure 2D
-    samples = ndims(data) == 1 ? reshape(data, :, 1) : data
+    # Ensure 2D and materialize to Array (needed for unsafe_store! pointer access)
+    samples = ndims(data) == 1 ? reshape(collect(data), :, 1) : collect(data)
+
+    # Normalize integers to Float32 [-1.0, 1.0]; convert Float64 to Float32
+    if eltype(samples) <: Signed
+        maxabs = max(-float(typemin(eltype(samples))), float(typemax(eltype(samples))))
+        samples = clamp.(Float32.(samples) ./ Float32(maxabs), -1f0, 1f0)
+    elseif eltype(samples) <: Unsigned
+        samples = Float32.(samples) ./ Float32(typemax(eltype(samples)))
+    elseif eltype(samples) != Float32
+        samples = Float32.(samples)
+    end
+
+    # Early return for empty audio (0 frames would hang CFRunLoop)
+    if size(samples, 1) == 0
+        return
+    end
 
     userData = AudioQueueData(samples)
     userData.aq = AudioQueueNewOutput(getFormatForData(samples, fs), userData)
