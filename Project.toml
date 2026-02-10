@@ -1,11 +1,13 @@
 name = "AIFF"
 uuid = "1b604ab5-8734-4983-954d-ef9ae1cbea4b"
-authors = ["amemiya"]
 version = "0.1.0"
+authors = ["amemiya"]
 
 [deps]
+Libdl = "8f399da3-3557-5675-b5ff-fb832c97cbdb"
 
 [compat]
+Libdl = "1.11.0"
 julia = "1.6"
 
 [extras]
