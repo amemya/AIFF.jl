@@ -266,7 +266,7 @@ end
 # ============================================================================
 
 function getFormatFlags(el)
-    flags = kAudioFormatFlagsAreAllClear
+    flags = kAudioFormatFlagsAreAllClear | kAudioFormatFlagIsPacked
     if el <: AbstractFloat
         flags |= kAudioFormatFlagIsFloat
     elseif el <: Integer
@@ -294,6 +294,14 @@ end
 function aiffplay(data::AbstractVecOrMat{<:Real}, fs::Real)
     # Ensure 2D and materialize to Array (needed for unsafe_store! pointer access)
     samples = ndims(data) == 1 ? reshape(collect(data), :, 1) : collect(data)
+
+    # Normalize integers to Float32 [-1.0, 1.0]; convert Float64 to Float32
+    if eltype(samples) <: Integer
+        maxval = Float32(typemax(eltype(samples)))
+        samples = Float32.(samples) ./ maxval
+    elseif eltype(samples) != Float32
+        samples = Float32.(samples)
+    end
 
     userData = AudioQueueData(samples)
     userData.aq = AudioQueueNewOutput(getFormatForData(samples, fs), userData)

@@ -74,7 +74,14 @@ end
 
 function aiffplay(data::AbstractVecOrMat{<:Real}, fs::Real)
     samples = ndims(data) == 1 ? reshape(data, :, 1) : data
-    wav = build_wav_memory(Float64.(samples), fs)
+    # Normalize integers to Float64 [-1.0, 1.0] for consistent handling
+    if eltype(samples) <: Integer
+        maxval = Float64(typemax(eltype(samples)))
+        samples = Float64.(samples) ./ maxval
+    else
+        samples = Float64.(samples)
+    end
+    wav = build_wav_memory(samples, fs)
 
     success = ccall((:PlaySoundA, "Winmm.dll"), stdcall, BOOL,
                     (Ptr{Cvoid}, Ptr{Cvoid}, DWORD),
