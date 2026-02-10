@@ -1,7 +1,5 @@
 # AIFF.jl
 
-[![CI](https://github.com/amemiya/AIFF.jl/actions/workflows/ci.yml/badge.svg)](https://github.com/amemiya/AIFF.jl/actions/workflows/ci.yml)
-
 A pure Julia package for reading and writing [AIFF (Audio Interchange File Format)](https://en.wikipedia.org/wiki/Audio_Interchange_File_Format) files — no external C libraries required.
 
 ## Features
@@ -17,7 +15,7 @@ A pure Julia package for reading and writing [AIFF (Audio Interchange File Forma
 
 ```julia
 using Pkg
-Pkg.add(url="https://github.com/amemiya/AIFF.jl")
+Pkg.add(url="https://github.com/amemya/AIFF.jl")
 ```
 
 ## Quick Start
@@ -55,7 +53,7 @@ result.data  # (nframes, nchannels)
 using AIFF
 
 # Generate a 1-second 440 Hz sine wave (mono, 44100 Hz)
-t = range(0, stop=1, length=44100)
+t = (0:44099) / 44100
 samples = sin.(2π * 440 .* t)
 
 aiffwrite("tone.aiff", samples, 44100; nbits=16)
