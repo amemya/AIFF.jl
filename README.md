@@ -18,7 +18,7 @@ A pure Julia package for reading and writing [AIFF (Audio Interchange File Forma
 
 ```julia
 using Pkg
-Pkg.add(url="https://github.com/amemya/AIFF.jl")
+Pkg.add("AIFF")
 ```
 
 ## Quick Start
