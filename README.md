@@ -1,4 +1,4 @@
-[![CI](https://github.com/amemya/AIFF.jl/actions/workflows/CI.yml/badge.svg)](https://github.com/amemya/AIFF.jl/actions/workflows/CI.yml)
+[![CI](https://github.com/JuliaAudio/AIFF.jl/actions/workflows/CI.yml/badge.svg)](https://github.com/JuliaAudio/AIFF.jl/actions/workflows/CI.yml)
 
 # AIFF.jl
 
